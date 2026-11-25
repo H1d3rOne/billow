@@ -1,0 +1,499 @@
+use sea_orm_migration::prelude::*;
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+
+const IDX_SHARED_SPACE_FOLDER: &str = "idx_shared_space_folder_id";
+const IDX_SHARED_SPACE_ACTIVE_BINDING: &str = "idx_shared_space_active_binding_id";
+const IDX_SHARED_SPACE_BINDING_SPACE: &str = "idx_shared_space_binding_space_id";
+const IDX_SHARED_SPACE_BINDING_CONVERSATION: &str = "idx_shared_space_binding_conversation_id";
+const IDX_SHARED_SPACE_BINDING_AGENT: &str = "idx_shared_space_binding_space_agent";
+const IDX_SHARED_SPACE_MESSAGE_SPACE: &str = "idx_shared_space_message_space_id";
+const IDX_SHARED_SPACE_MESSAGE_BINDING: &str = "idx_shared_space_message_binding_id";
+const IDX_SHARED_SPACE_SNAPSHOT_SPACE: &str = "idx_shared_space_snapshot_space_id";
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table(
+                Table::create()
+                    .table(SharedSpace::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(SharedSpace::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(SharedSpace::Name).string().not_null())
+                    .col(ColumnDef::new(SharedSpace::FolderId).integer().not_null())
+                    .col(
+                        ColumnDef::new(SharedSpace::ActiveAgentBindingId)
+                            .integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpace::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpace::UpdatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpace::DeletedAt)
+                            .timestamp_with_time_zone()
+                            .null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_shared_space_folder")
+                            .from(SharedSpace::Table, SharedSpace::FolderId)
+                            .to(Folder::Table, Folder::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(SharedSpaceAgentBinding::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(SharedSpaceAgentBinding::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceAgentBinding::SpaceId)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceAgentBinding::AgentType)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceAgentBinding::ConversationId)
+                            .integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceAgentBinding::NativeSessionId)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceAgentBinding::LastUsedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceAgentBinding::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceAgentBinding::UpdatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_shared_space_binding_space")
+                            .from(
+                                SharedSpaceAgentBinding::Table,
+                                SharedSpaceAgentBinding::SpaceId,
+                            )
+                            .to(SharedSpace::Table, SharedSpace::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_shared_space_binding_conversation")
+                            .from(
+                                SharedSpaceAgentBinding::Table,
+                                SharedSpaceAgentBinding::ConversationId,
+                            )
+                            .to(Conversation::Table, Conversation::Id)
+                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(SharedSpaceMessage::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(SharedSpaceMessage::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceMessage::SpaceId)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceMessage::BindingId)
+                            .integer()
+                            .null(),
+                    )
+                    .col(ColumnDef::new(SharedSpaceMessage::Role).string().not_null())
+                    .col(
+                        ColumnDef::new(SharedSpaceMessage::Content)
+                            .text()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceMessage::SourceAgentType)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceMessage::NativeMessageId)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceMessage::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_shared_space_message_space")
+                            .from(SharedSpaceMessage::Table, SharedSpaceMessage::SpaceId)
+                            .to(SharedSpace::Table, SharedSpace::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_shared_space_message_binding")
+                            .from(SharedSpaceMessage::Table, SharedSpaceMessage::BindingId)
+                            .to(SharedSpaceAgentBinding::Table, SharedSpaceAgentBinding::Id)
+                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(SharedSpaceContextSnapshot::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(SharedSpaceContextSnapshot::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceContextSnapshot::SpaceId)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceContextSnapshot::Summary)
+                            .text()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceContextSnapshot::RecentMessagesJson)
+                            .text()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SharedSpaceContextSnapshot::UpdatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_shared_space_snapshot_space")
+                            .from(
+                                SharedSpaceContextSnapshot::Table,
+                                SharedSpaceContextSnapshot::SpaceId,
+                            )
+                            .to(SharedSpace::Table, SharedSpace::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name(IDX_SHARED_SPACE_FOLDER)
+                    .table(SharedSpace::Table)
+                    .col(SharedSpace::FolderId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name(IDX_SHARED_SPACE_ACTIVE_BINDING)
+                    .table(SharedSpace::Table)
+                    .col(SharedSpace::ActiveAgentBindingId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name(IDX_SHARED_SPACE_BINDING_SPACE)
+                    .table(SharedSpaceAgentBinding::Table)
+                    .col(SharedSpaceAgentBinding::SpaceId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name(IDX_SHARED_SPACE_BINDING_CONVERSATION)
+                    .table(SharedSpaceAgentBinding::Table)
+                    .col(SharedSpaceAgentBinding::ConversationId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name(IDX_SHARED_SPACE_BINDING_AGENT)
+                    .table(SharedSpaceAgentBinding::Table)
+                    .col(SharedSpaceAgentBinding::SpaceId)
+                    .col(SharedSpaceAgentBinding::AgentType)
+                    .unique()
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name(IDX_SHARED_SPACE_MESSAGE_SPACE)
+                    .table(SharedSpaceMessage::Table)
+                    .col(SharedSpaceMessage::SpaceId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name(IDX_SHARED_SPACE_MESSAGE_BINDING)
+                    .table(SharedSpaceMessage::Table)
+                    .col(SharedSpaceMessage::BindingId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name(IDX_SHARED_SPACE_SNAPSHOT_SPACE)
+                    .table(SharedSpaceContextSnapshot::Table)
+                    .col(SharedSpaceContextSnapshot::SpaceId)
+                    .unique()
+                    .to_owned(),
+            )
+            .await
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name(IDX_SHARED_SPACE_SNAPSHOT_SPACE)
+                    .table(SharedSpaceContextSnapshot::Table)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name(IDX_SHARED_SPACE_MESSAGE_BINDING)
+                    .table(SharedSpaceMessage::Table)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name(IDX_SHARED_SPACE_MESSAGE_SPACE)
+                    .table(SharedSpaceMessage::Table)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name(IDX_SHARED_SPACE_BINDING_AGENT)
+                    .table(SharedSpaceAgentBinding::Table)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name(IDX_SHARED_SPACE_BINDING_CONVERSATION)
+                    .table(SharedSpaceAgentBinding::Table)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name(IDX_SHARED_SPACE_BINDING_SPACE)
+                    .table(SharedSpaceAgentBinding::Table)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name(IDX_SHARED_SPACE_ACTIVE_BINDING)
+                    .table(SharedSpace::Table)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_index(
+                Index::drop()
+                    .if_exists()
+                    .name(IDX_SHARED_SPACE_FOLDER)
+                    .table(SharedSpace::Table)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_table(
+                Table::drop()
+                    .if_exists()
+                    .table(SharedSpaceContextSnapshot::Table)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_table(
+                Table::drop()
+                    .if_exists()
+                    .table(SharedSpaceMessage::Table)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_table(
+                Table::drop()
+                    .if_exists()
+                    .table(SharedSpaceAgentBinding::Table)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_table(
+                Table::drop()
+                    .if_exists()
+                    .table(SharedSpace::Table)
+                    .to_owned(),
+            )
+            .await
+    }
+}
+
+#[derive(DeriveIden)]
+enum SharedSpace {
+    Table,
+    Id,
+    Name,
+    FolderId,
+    ActiveAgentBindingId,
+    CreatedAt,
+    UpdatedAt,
+    DeletedAt,
+}
+
+#[derive(DeriveIden)]
+enum SharedSpaceAgentBinding {
+    Table,
+    Id,
+    SpaceId,
+    AgentType,
+    ConversationId,
+    NativeSessionId,
+    LastUsedAt,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum SharedSpaceMessage {
+    Table,
+    Id,
+    SpaceId,
+    BindingId,
+    Role,
+    Content,
+    SourceAgentType,
+    NativeMessageId,
+    CreatedAt,
+}
+
+#[derive(DeriveIden)]
+enum SharedSpaceContextSnapshot {
+    Table,
+    Id,
+    SpaceId,
+    Summary,
+    RecentMessagesJson,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum Folder {
+    Table,
+    Id,
+}
+
+#[derive(DeriveIden)]
+enum Conversation {
+    Table,
+    Id,
+}
